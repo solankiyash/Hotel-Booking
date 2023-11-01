@@ -1,4 +1,4 @@
-import { createError } from "../../Utils/error.js";
+import { createError } from "../Utils/error.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs"
 import  Jwt  from "jsonwebtoken";
@@ -6,6 +6,7 @@ import  Jwt  from "jsonwebtoken";
 export const register = async (req,res,next) => {
     try {
         const salt = bcrypt.genSaltSync(10);
+
         const hash = bcrypt.hashSync(req.body.password,salt)
         const newUser = new User({
             username:req.body.username,
@@ -34,8 +35,14 @@ export const login = async (req,res,next) => {
 
         const {password,isAdmin,...otherDetails} = user._doc
 
-        res.status(200).json({...otherDetails})
+        res.cookie("access_token",token,{
+            httpOnly:true
+        }).status(200).json({...otherDetails})
     } catch (error) {
         next(error)
     }
 }
+
+
+
+
