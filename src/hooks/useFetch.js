@@ -18,7 +18,7 @@ const useFetch = (url) => {
             }
             setLoding(false)
         }
-        fetchdata();
+        fetchdata();    
     },[url])    
 
     const refetch = async () => {

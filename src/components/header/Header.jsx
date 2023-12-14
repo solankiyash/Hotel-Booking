@@ -9,31 +9,37 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "./header.css";
 import { DateRange } from "react-date-range";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import "react-date-range/dist/styles.css"; // main css file
 import "react-date-range/dist/theme/default.css"; // theme css file
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { SearchContext } from "../../Context/SearchContext";
+import { AuthContext } from "../../Context/AuthContext";
 
 const Header = ({ type }) => {
-  const [destination, setDestination] = useState("");
   const [openDate, setOpenDate] = useState(false);
-  const [date, setDate] = useState([
+  const [selectValue, setSelectValue] = useState("");
+  const [dropdowndata, setDropDownData] = useState([]);
+  const [destination, setDestination] = useState("");
+  const [dates, setDates] = useState([
     {
       startDate: new Date(),
       endDate: new Date(),
       key: "selection",
     },
   ]);
+
+  const {user} = useContext(AuthContext)
+  
   const [openOptions, setOpenOptions] = useState(false);
   const [options, setOptions] = useState({
     adult: 1,
     children: 0,
     room: 1,
   });
-
   const navigate = useNavigate();
-
   const handleOption = (name, operation) => {
     setOptions((prev) => {
       return {
@@ -42,10 +48,34 @@ const Header = ({ type }) => {
       };
     });
   };
+
+
+  const {dispatch} = useContext(SearchContext)
+
   const handleSearch = () => {
-    navigate("/hotels", { state: { destination, date, options } });
+    dispatch({type:"NEW_SEARCH",payload:{destination,dates,options}})
+    navigate("/hotels", {
+      state: destination
+        ? { destination, dates, options }
+        : { selectValue, dates, options },
+    });
   };
 
+  useEffect(() => {
+    axios
+      .get("http://localhost:8000/api/hotels/getcities")
+      .then((res) => {
+        const data = res?.data;
+        setDropDownData(data);
+
+        if (data.length > 0) {
+          setSelectValue(data[0]);
+        }
+      })
+      .catch((err) => console.log(err));
+  }, []);
+
+  console.log(destination);
   return (
     <div className="header">
       <div
@@ -56,7 +86,7 @@ const Header = ({ type }) => {
         <div className="headerList">
           <div className="headerListItem active">
             <FontAwesomeIcon icon={faBed} />
-            <span>Stays</span>
+            <span>Stays</span> 
           </div>
           <div className="headerListItem">
             <FontAwesomeIcon icon={faPlane} />
@@ -84,32 +114,40 @@ const Header = ({ type }) => {
               Get rewarded for your travels – unlock instant savings of 10% or
               more with a free Lamabooking account
             </p>
-            <button className="headerBtn">Sign in / Register</button>
+           {!user &&  <button className="headerBtn">Sign in / Register</button>}
             <div className="headerSearch">
               <div className="headerSearchItem">
                 <FontAwesomeIcon icon={faBed} className="headerIcon" />
-                <input
+                {/* <input
                   type="text"
                   placeholder="Where are you going?"
                   className="headerSearchInput"
                   onChange={(e) => setDestination(e.target.value)}
-                />
+                /> */}
+                <select
+                  style={{ border: "none", borderStyle: "none" }}
+                  onChange={(e) => setDestination(e.target.value)}
+                >
+                  {dropdowndata.map((i) => (
+                    <option>{i}</option>
+                  ))}
+                </select>
               </div>
               <div className="headerSearchItem">
                 <FontAwesomeIcon icon={faCalendarDays} className="headerIcon" />
                 <span
                   onClick={() => setOpenDate(!openDate)}
                   className="headerSearchText"
-                >{`${format(date[0].startDate, "MM/dd/yyyy")} to ${format(
-                  date[0].endDate,
+                >{`${format(dates[0].startDate, "MM/dd/yyyy")} to ${format(
+                  dates[0].endDate,
                   "MM/dd/yyyy"
                 )}`}</span>
                 {openDate && (
                   <DateRange
                     editableDateInputs={true}
-                    onChange={(item) => setDate([item.selection])}
+                    onChange={(item) => setDates([item.selection])}
                     moveRangeOnFirstSelection={false}
-                    ranges={date}
+                    ranges={dates}
                     className="date"
                     minDate={new Date()}
                   />
